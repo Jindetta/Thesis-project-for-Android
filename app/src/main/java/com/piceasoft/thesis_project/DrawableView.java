@@ -23,14 +23,16 @@ public class DrawableView extends View {
         mPaint = new Paint();
         mPaint.setColor(Color.BLACK);
         mPaint.setStyle(Paint.Style.STROKE);
-        mPaint.setStrokeWidth(40);
+        mPaint.setStrokeCap(Paint.Cap.ROUND);
+        mPaint.setStrokeJoin(Paint.Join.ROUND);
+        mPaint.setStrokeWidth(100);
 
         mPath = new Path();
     }
 
     @Override
     protected void onDraw(Canvas canvas) {
-        canvas.drawPath(mPath, mPaint);
+        drawToCanvas(canvas);
         super.onDraw(canvas);
     }
 
@@ -45,7 +47,7 @@ public class DrawableView extends View {
                 mPath.lineTo(event.getX(), event.getY());
                 break;
             default:
-                return false;
+                return super.onTouchEvent(event);
         }
 
         invalidate();
@@ -60,10 +62,13 @@ public class DrawableView extends View {
     public Bitmap getRenderView() {
         Bitmap bitmap = Bitmap.createBitmap(getWidth(), getHeight(), Bitmap.Config.RGB_565);
 
-        Canvas canvas = new Canvas(bitmap);
-        canvas.drawColor(Color.WHITE);
-        canvas.drawPath(mPath, mPaint);
+        drawToCanvas(new Canvas(bitmap));
 
         return bitmap;
+    }
+
+    private void drawToCanvas(Canvas canvas) {
+        canvas.drawColor(Color.WHITE);
+        canvas.drawPath(mPath, mPaint);
     }
 }
