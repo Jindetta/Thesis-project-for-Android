@@ -1,17 +1,17 @@
 package com.piceasoft.thesis_project;
 
 class Classification {
-    private float confidence;
+    private String confidence;
     private String digit;
 
     Classification(float[] confidences) {
         int index = getMaxIndex(confidences);
 
-        confidence = confidences[index];
+        confidence = String.valueOf(confidences[index]);
         digit = String.valueOf(index);
     }
 
-    float getConfidence() {
+    String getConfidence() {
         return confidence;
     }
 

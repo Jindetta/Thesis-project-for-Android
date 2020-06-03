@@ -1,3 +1,9 @@
 <resources>
     <string name="app_name">Thesis-project</string>
+
+    <string name="result_text">&lt;b&gt;Confidence:&lt;/b&gt; %s - &lt;b&gt;Result:&lt;/b&gt; %s</string>
+    <string name="result_not_available">N/A</string>
+
+    <string name="classify_text">Start classification</string>
+    <string name="clear_text">Clear drawing</string>
 </resources>
