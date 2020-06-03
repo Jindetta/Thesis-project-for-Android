@@ -4,7 +4,6 @@ import android.content.Context;
 import android.content.res.AssetFileDescriptor;
 import android.content.res.AssetManager;
 import android.graphics.Bitmap;
-import android.util.Size;
 
 import com.google.android.gms.tasks.Task;
 import com.google.android.gms.tasks.Tasks;
@@ -20,39 +19,39 @@ import java.nio.channels.FileChannel;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-public class DigitClassifier {
+class DigitClassifier {
     private static final int MAX_THREADS = 4;
     private static final String MODEL_FILE = "digits.tflite";
     private static final Interpreter.Options mInterpreterOptions;
 
-    private static final int OUTPUT_CLASSES = 10;
     private static final int FLOAT_SIZE = 4;
     private static final int PIXEL_SIZE = 1;
+    private static final int INPUT_WIDTH = 28;
+    private static final int INPUT_HEIGHT = 28;
+    private static final int OUTPUT_CLASSES = 10;
 
     private final ExecutorService mExecutorService = Executors.newCachedThreadPool();
     private Interpreter mTfLiteInterpreter;
-    private Size mInputImageSize;
 
-    public DigitClassifier(Context context) {
-        try {
-            MappedByteBuffer modelData = loadModel(context.getAssets());
-            Interpreter interpreter = new Interpreter(modelData, mInterpreterOptions);
-
-            int[] shapeData = interpreter.getInputTensor(0).shape();
-            mInputImageSize = new Size(shapeData[0], shapeData[1]);
-            mTfLiteInterpreter = interpreter;
-        } catch(IOException e) {
-            throw new IllegalStateException(e);
-        }
+    DigitClassifier(Context context) {
+        asyncInit(context);
     }
 
-    public Task<Classification> asyncClassify(Bitmap bitmap) {
+    Task<Classification> asyncClassify(Bitmap bitmap) {
         return Tasks.call(mExecutorService, () -> classify(bitmap));
     }
 
-    public void close() {
-        mTfLiteInterpreter.close();
-        mTfLiteInterpreter = null;
+    private void asyncInit(Context context) {
+        Tasks.call(mExecutorService, () -> {
+            try {
+                MappedByteBuffer modelData = loadModel(context.getAssets());
+                mTfLiteInterpreter = new Interpreter(modelData, mInterpreterOptions);
+            } catch(IOException e) {
+                throw new IllegalStateException(e);
+            }
+
+            return null;
+        });
     }
 
     private Classification classify(Bitmap bitmap) {
@@ -60,8 +59,7 @@ public class DigitClassifier {
             throw new IllegalStateException("Interpreter is not initialized");
         }
 
-        Bitmap scaledBitmap = Bitmap.createScaledBitmap(bitmap, mInputImageSize.getWidth(), mInputImageSize.getHeight(), true);
-        ByteBuffer byteBuffer = bitmapToBuffer(scaledBitmap);
+        ByteBuffer byteBuffer = createScaledBitmapBuffer(bitmap);
 
         final float[][] outputData = new float[1][OUTPUT_CLASSES];
         mTfLiteInterpreter.run(byteBuffer, outputData);
@@ -69,21 +67,17 @@ public class DigitClassifier {
         return new Classification(outputData[0]);
     }
 
-    private ByteBuffer bitmapToBuffer(Bitmap bitmap) {
-        final int inputSize = mInputImageSize.getWidth() * mInputImageSize.getHeight();
+    private ByteBuffer createScaledBitmapBuffer(Bitmap bitmap) {
+        bitmap = Bitmap.createScaledBitmap(bitmap, INPUT_WIDTH, INPUT_HEIGHT, true);
 
-        ByteBuffer byteBuffer = ByteBuffer.allocate(FLOAT_SIZE * inputSize * PIXEL_SIZE);
+        ByteBuffer byteBuffer = ByteBuffer.allocateDirect(FLOAT_SIZE * INPUT_WIDTH * INPUT_HEIGHT * PIXEL_SIZE);
         byteBuffer.order(ByteOrder.nativeOrder());
 
-        final int[] pixels = new int[inputSize];
+        final int[] pixels = new int[INPUT_WIDTH * INPUT_HEIGHT];
         bitmap.getPixels(pixels, 0, bitmap.getWidth(), 0, 0, bitmap.getWidth(), bitmap.getHeight());
 
         for(int pixel : pixels) {
-            int r = pixel >> 16 & 0xFF;
-            int g = pixel >> 8 & 0xFF;
-            int b = pixel & 0xFF;
-
-            byteBuffer.putFloat((r + g + b) / 3f / 255f);
+            byteBuffer.putFloat(convertPixel(pixel));
         }
 
         return byteBuffer;
@@ -98,9 +92,15 @@ public class DigitClassifier {
         return channelData.map(FileChannel.MapMode.READ_ONLY, descriptor.getStartOffset(), descriptor.getDeclaredLength());
     }
 
+    private static float convertPixel(int color) {
+        return (255 - (((color >> 16) & 0xFF) * 0.299f
+                + ((color >> 8) & 0xFF) * 0.587f
+                + (color & 0xFF) * 0.114f)) / 255f;
+    }
+
     static {
         mInterpreterOptions = new Interpreter.Options();
         mInterpreterOptions.setNumThreads(MAX_THREADS);
-        mInterpreterOptions.setUseNNAPI(true);
+        mInterpreterOptions.setUseNNAPI(false);
     }
 }
