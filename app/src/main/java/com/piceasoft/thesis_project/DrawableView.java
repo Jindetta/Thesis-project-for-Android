@@ -54,6 +54,10 @@ public class DrawableView extends View {
         return true;
     }
 
+    public boolean isEmpty() {
+        return mPath.isEmpty();
+    }
+
     public void reset() {
         mPath.reset();
         invalidate();
