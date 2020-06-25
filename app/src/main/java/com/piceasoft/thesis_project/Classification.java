@@ -1,13 +1,16 @@
 package com.piceasoft.thesis_project;
 
+import android.annotation.SuppressLint;
+
 class Classification {
     private String confidence;
     private String digit;
 
+    @SuppressLint("DefaultLocale")
     Classification(float[] confidences) {
         int index = getMaxIndex(confidences);
 
-        confidence = String.valueOf(confidences[index]);
+        confidence = String.format("%.3f", confidences[index]);
         digit = String.valueOf(index);
     }
 
