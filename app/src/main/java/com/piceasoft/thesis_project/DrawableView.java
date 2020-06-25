@@ -25,7 +25,7 @@ public class DrawableView extends View {
         mPaint.setStyle(Paint.Style.STROKE);
         mPaint.setStrokeCap(Paint.Cap.ROUND);
         mPaint.setStrokeJoin(Paint.Join.ROUND);
-        mPaint.setStrokeWidth(100);
+        mPaint.setStrokeWidth(75);
 
         mPath = new Path();
     }

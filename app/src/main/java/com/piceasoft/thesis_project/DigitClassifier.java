@@ -21,7 +21,7 @@ import java.util.concurrent.Executors;
 
 class DigitClassifier {
     private static final int MAX_THREADS = 4;
-    private static final String MODEL_FILE = "digits.tflite";
+    private static final String MODEL_FILE = "mnist_model.tflite";
     private static final Interpreter.Options mInterpreterOptions;
 
     private static final int FLOAT_SIZE = 4;
